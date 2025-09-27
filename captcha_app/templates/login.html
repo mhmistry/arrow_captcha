@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+</head>
+<body>
+    <h2>Sign In</h2>
+
+    <form method="post">
+        {% csrf_token %}
+        <label for="username">Username:</label>
+        <input type="text" id="username" name="username"><br><br>
+
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password"><br><br>
+
+        <label>
+            <input type="checkbox" id="captcha-checkbox"> I'm not a robot
+        </label><br><br>
+
+        <button type="submit" id="login-button" disabled>Login</button>
+    </form>
+
+    <!-- Overlay -->
+    <div id="overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);"></div>
+
+    <!-- CAPTCHA -->
+    <div id="captcha-popup" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%, -50%);background:white;padding:20px;text-align:center;border:1px solid black;">
+        <h3>Complete the CAPTCHA</h3>
+
+        <canvas id="captcha-arrows" width="250" height="150" style="border:1px solid black;"></canvas>
+        <p>Click to rotate the arrows to match this order:</p>
+        <canvas id="captcha-text" width="200" height="50"></canvas><br>
+
+        <button onclick="validateCaptcha()">Submit</button>
+        <button onclick="refreshCaptcha()">Refresh</button>
+        <button onclick="closeCaptcha()">Cancel</button>
+        <p id="captcha-error" style="color:red;"></p>
+    </div>
+
+    <script>
+        let targetDirections = [];
+        let selectedRotations = [0, 0, 0, 0];
+        const arrowPositions = [40, 90, 140, 190];
+
+        document.getElementById("captcha-checkbox").addEventListener("change", () => {
+            if (document.getElementById("captcha-checkbox").checked) openCaptcha();
+        });
+
+        function openCaptcha() {
+            generateTargetDirections();
+            drawArrows();
+            document.getElementById("captcha-popup").style.display = "block";
+            document.getElementById("overlay").style.display = "block";
+        }
+
+        function closeCaptcha() {
+            document.getElementById("captcha-popup").style.display = "none";
+            document.getElementById("overlay").style.display = "none";
+            document.getElementById("captcha-checkbox").checked = false;
+        }
+
+        function generateTargetDirections() {
+            const directions = ["↑", "↓", "←", "→"];
+            targetDirections = Array.from({length: 4}, () => directions[Math.floor(Math.random() * 4)]);
+            drawDistortedText(targetDirections.join(" "));
+        }
+
+        function drawDistortedText(text) {
+            const canvas = document.getElementById("captcha-text");
+            const ctx = canvas.getContext("2d");
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const fontSize = 24 + Math.random() * 4;
+            ctx.font = `bold ${fontSize}px Arial`;
+            ctx.fillStyle = "black";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+
+            const skewX = Math.random() * 0.3 - 0.15;
+            const skewY = Math.random() * 0.2 - 0.1;
+            const scaleX = 1 + Math.random() * 0.2;
+            const scaleY = 1 + Math.random() * 0.15;
+
+            ctx.setTransform(scaleX, skewX, skewY, scaleY, canvas.width/2, canvas.height/2);
+            ctx.fillText(text, 0, 0);
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+            // Noise
+            for (let i=0; i<100; i++) {
+                ctx.fillStyle = `rgba(0,0,0,${Math.random()*0.4})`;
+                ctx.fillRect(Math.random()*canvas.width, Math.random()*canvas.height, Math.random()*2, Math.random()*2);
+            }
+            for (let i=0; i<3; i++) {
+                ctx.strokeStyle = `rgba(0,0,0,${Math.random()*0.6})`;
+                ctx.lineWidth = Math.random()*1.5;
+                ctx.beginPath();
+                ctx.moveTo(Math.random()*canvas.width, Math.random()*canvas.height);
+                ctx.lineTo(Math.random()*canvas.width, Math.random()*canvas.height);
+                ctx.stroke();
+            }
+        }
+
+        function drawArrows() {
+            const canvas = document.getElementById("captcha-arrows");
+            const ctx = canvas.getContext("2d");
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            for (let i=0; i<4; i++) drawArrow(ctx, arrowPositions[i], 75, selectedRotations[i]);
+        }
+
+        function drawArrow(ctx, x, y, angle) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(angle*Math.PI/180);
+            ctx.beginPath();
+            ctx.moveTo(0, -20);
+            ctx.lineTo(-10, 10);
+            ctx.lineTo(0,5);
+            ctx.lineTo(10,10);
+            ctx.closePath();
+            ctx.fillStyle="black";
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function rotateArrow(i) {
+            selectedRotations[i] = (selectedRotations[i]+90)%360;
+            drawArrows();
+        }
+
+        function validateCaptcha() {
+            const correctRotations = targetDirections.map(d => ({'↑':0,'→':90,'↓':180,'←':270}[d]));
+            if (JSON.stringify(selectedRotations) === JSON.stringify(correctRotations)) {
+                closeCaptcha();
+                window.location.href="/signed-in/";
+            } else {
+                document.getElementById("captcha-error").innerText = "❌ Incorrect! Try again.";
+            }
+        }
+
+        function refreshCaptcha() {
+            generateTargetDirections();
+            drawArrows();
+        }
+
+        document.getElementById("captcha-arrows").addEventListener("click", e => {
+            const rect = e.target.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            for (let i=0; i<4; i++) if(mouseX>arrowPositions[i]-20 && mouseX<arrowPositions[i]+20) { rotateArrow(i); break; }
+        });
+    </script>
+</body>
+</html>
