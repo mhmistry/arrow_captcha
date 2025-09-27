@@ -11,18 +11,22 @@ A web-based CAPTCHA system using rotatable arrows to verify human users. Built w
 
 ## Installation
 1. Clone the repository  
+    ```bash
     git clone https://github.com/mhmistry/arrow_captcha.git  
     cd arrow_captcha
 
 2. Create a virtual environment (optional but recommended)  
+    ```bash
     python -m venv venv  
     venv\Scripts\activate # Windows  
     source venv/bin/activate # macOS/Linux
 
-3. Install dependencies  
+3. Install dependencies 
+    ```bash
     pip install django
 
 4. Run the server  
+    ```bash
     python manage.py runserver
 
 5. Open your browser and go to:  
