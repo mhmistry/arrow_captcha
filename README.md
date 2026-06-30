@@ -43,6 +43,3 @@ A web-based CAPTCHA system using rotatable arrows to verify human users. Built w
 - Backend: Django
 - Frontend: HTML, CSS, JavaScript
 - Database: SQLite (default Django database)
-
-## License
-This project is open-source and free to use for educational purposes.
